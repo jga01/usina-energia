@@ -1,0 +1,68 @@
+[gd_scene load_steps=3 format=3 uid="uid://dfwfiscg0glrr"]
+
+[ext_resource type="Script" uid="uid://caobighhsib0k" path="res://scripts/Display.gd" id="1_dudek"]
+[ext_resource type="Script" uid="uid://c00dmqbwcsdsq" path="res://scripts/GameManager.gd" id="2_e618a"]
+
+[node name="Display" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_dudek")
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("2_e618a")
+
+[node name="EventCheckTimer" type="Timer" parent="GameManager"]
+
+[node name="EventDurationTimer" type="Timer" parent="GameManager"]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="EventAlertLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="PowerGridStatusLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Power Grid Status"
+
+[node name="EnergyBarContainer" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="EnergyBar" type="ProgressBar" parent="VBoxContainer/EnergyBarContainer"]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 27.0
+value = 50.0
+
+[node name="SafeZoneTop" type="ColorRect" parent="VBoxContainer/EnergyBarContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="SafeZoneBottom" type="ColorRect" parent="VBoxContainer/EnergyBarContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="EnergyLevelText" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "50%"
+
+[node name="StatusText" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Waiting..."
+
+[node name="CoopProgressText" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Stability Goal: ..."
+
+[node name="ResetButtonContainer" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ResetButton" type="Button" parent="ResetButtonContainer"]
+layout_mode = 2
+text = "Play Again?"

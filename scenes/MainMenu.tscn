@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3 uid="uid://bs3b24dxb6fuy"]
+
+[ext_resource type="Script" uid="uid://dx4oy0fp2no4w" path="res://scripts/MainMenu.gd" id="1_yqorp"]
+
+[node name="MainMenu" type="Node2D"]
+script = ExtResource("1_yqorp")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+offset_left = 232.0
+offset_top = 106.0
+offset_right = 614.0
+offset_bottom = 338.0
+
+[node name="Title" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Energy Grid"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="HostIPLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Host IP:"
+
+[node name="IPAddressInput" type="LineEdit" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="HostGameButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Host Game"
+
+[node name="JoinGameButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Join Game"
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2

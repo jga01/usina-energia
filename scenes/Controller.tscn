@@ -1,0 +1,58 @@
+[gd_scene load_steps=2 format=3 uid="uid://b2tcvld66c8is"]
+
+[ext_resource type="Script" uid="uid://dd1e15w3urn20" path="res://scripts/Controller.gd" id="1_m0puu"]
+
+[node name="Controller" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_m0puu")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ControllerTitle" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="StashDisplay" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/StashDisplay"]
+layout_mode = 2
+
+[node name="StashLabel" type="Label" parent="VBoxContainer/StashDisplay/HBoxContainer"]
+layout_mode = 2
+text = "Personal Stash:"
+
+[node name="StashAmount" type="Label" parent="VBoxContainer/StashDisplay/HBoxContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="DivideLabel" type="Label" parent="VBoxContainer/StashDisplay/HBoxContainer"]
+layout_mode = 2
+text = "/"
+
+[node name="StashTarget" type="Label" parent="VBoxContainer/StashDisplay/HBoxContainer"]
+layout_mode = 2
+text = "??"
+
+[node name="GenerateButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Generate Power"
+
+[node name="StabilizeButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Stabilize Burst"
+
+[node name="EmergencyButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Emergency Adjust"
+
+[node name="StealGridButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Divert Power"
+
+[node name="StatusText" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Connecting..."

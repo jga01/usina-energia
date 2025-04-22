@@ -1,3 +1,4 @@
+# scripts/Controller.gd
 extends Control
 
 # --- UI Node References ---
@@ -6,8 +7,8 @@ extends Control
 @onready var emergency_button: Button = $VBoxContainer/EmergencyButton
 @onready var steal_grid_button: Button = $VBoxContainer/StealGridButton
 @onready var status_text: Label = $VBoxContainer/StatusText
-@onready var stash_amount_text: Label = $VBoxContainer/StashDisplay/StashAmount
-@onready var stash_target_text: Label = $VBoxContainer/StashDisplay/StashTarget
+@onready var stash_amount_text: Label = $VBoxContainer/StashDisplay/HBoxContainer/StashAmount
+@onready var stash_target_text: Label = $VBoxContainer/StashDisplay/HBoxContainer/StashTarget
 
 # --- Cooldown State ---
 var cooldown_timers: Dictionary = {
@@ -16,258 +17,408 @@ var cooldown_timers: Dictionary = {
 	"stealGrid": {"button": null, "end_time_ms": 0, "timer_node": Timer.new()},
 }
 var is_game_running: bool = false
-var status_message_timer: Timer = Timer.new() # For temporary messages (fail/misuse)
+var status_message_timer: Timer = Timer.new()
+var host_has_started_game = false # Tracks if host sent rpc_receive_game_start
+var host_is_ready = false # Tracks if host sent rpc_signal_host_ready
 
+# Called when the node enters the scene tree for the first time.
 func _ready():
-	# Assign buttons to state
 	cooldown_timers["stabilize"]["button"] = stabilize_button
 	cooldown_timers["emergencyAdjust"]["button"] = emergency_button
 	cooldown_timers["stealGrid"]["button"] = steal_grid_button
 
-	# Setup timers
 	for action in cooldown_timers:
 		var timer = cooldown_timers[action]["timer_node"]
-		timer.name = action + "CooldownTimer" # Optional: Name for debugging
+		timer.name = action + "CooldownTimer"
 		add_child(timer)
-		timer.timeout.connect(_update_cooldown_display.bind(action)) # Bind action name
-		# Don't set wait_time here, set dynamically or just check time in _process
 
 	add_child(status_message_timer)
 	status_message_timer.one_shot = true
-	status_message_timer.wait_time = 2.0 # 2 seconds for temporary messages
+	status_message_timer.wait_time = 2.0
 	status_message_timer.timeout.connect(_clear_temporary_status_message)
 
-	# Connect button signals
 	generate_button.pressed.connect(_on_generate_pressed)
 	stabilize_button.pressed.connect(_on_action_pressed.bind("stabilize"))
 	emergency_button.pressed.connect(_on_action_pressed.bind("emergencyAdjust"))
 	steal_grid_button.pressed.connect(_on_action_pressed.bind("stealGrid"))
 
-	# Initial UI state
-	set_buttons_interactable(false)
+	# --- Initial State ---
+	host_is_ready = false # Reset host ready flag
+	host_has_started_game = false # Reset game started flag
+	set_buttons_interactable(false) # Keep false initially
 	status_text.text = "Connecting..."
 	stash_target_text.text = "??"
 
-	# Connect to network signals if needed (e.g., disconnected from server)
-	NetworkManager.connection_failed.connect(_on_disconnected) # If server disconnects or initial join fails
-	# NetworkManager.connection_succeeded signal handled by scene transition usually
+	if NetworkManager:
+		NetworkManager.connection_failed.connect(_on_disconnected)
+		NetworkManager.connection_succeeded.connect(_on_connected_successfully)
+	else:
+		printerr("Controller Error: NetworkManager singleton not found!")
+		status_text.text = "Error: Network Init Failed"
 
+	# --- DEBUG CLIENT TREE ---
+	call_deferred("_print_client_tree")
+
+
+func _print_client_tree():
+	await get_tree().process_frame # Wait one frame to let things potentially settle
+	print(">>> Controller: Client scene tree in _ready (deferred):")
+	if is_instance_valid(get_tree()) and is_instance_valid(get_tree().get_root()):
+		get_tree().get_root().print_tree_pretty()
+		print(">>> Controller: Own path: %s" % get_path()) # Should be /root/Controller
+	else:
+		print(">>> Controller: Tree or root node invalid during print!")
+	# --- END DEBUG CLIENT TREE ---
+
+
+# Called every frame. Delta is the elapsed time since the previous frame.
 func _process(_delta):
-	# Update cooldown text continuously if timer based approach is insufficient
 	for action in cooldown_timers:
 		var state = cooldown_timers[action]
-		if state.end_time_ms > 0: # If a cooldown is set
+		if state.end_time_ms > 0: # If a cooldown is active for this action
 			_update_cooldown_display(action)
 
-
+# Enables or disables player action buttons based on game state and readiness.
 func set_buttons_interactable(enabled: bool):
-	is_game_running = enabled
-	generate_button.disabled = not enabled
+	is_game_running = enabled # Update internal running state
 
-	# Special actions depend on both game running AND cooldown
+	# --- Button interaction requires HOST READY, HOST STARTED, and GAME RUNNING ---
+	var allow_interaction = is_game_running and host_has_started_game and host_is_ready
+	# --- DEBUG: Print state during button check ---
+	# print(">>> Controller: set_buttons_interactable - allow_interaction = %s (running=%s, started=%s, ready=%s)" % [allow_interaction, is_game_running, host_has_started_game, host_is_ready])
+
+	if is_instance_valid(generate_button):
+		generate_button.disabled = not allow_interaction
+
 	for action in cooldown_timers:
 		var state = cooldown_timers[action]
+		if not is_instance_valid(state.button):
+			continue
+
 		var is_on_cooldown = state.end_time_ms > Time.get_ticks_msec()
-		state.button.disabled = not enabled or is_on_cooldown
+		# Disable if interaction not allowed OR if specifically on cooldown
+		state.button.disabled = not allow_interaction or is_on_cooldown
 
-	if not enabled and status_message_timer.is_stopped(): # Only update if no temp msg
-		status_text.text = "Game Over / Waiting"
-
+	# Update the main status text if the game ends and no temporary message is active.
+	# Check status AFTER evaluating button states
+	_check_and_update_ready_status() # Update status based on all flags
 
 # --- Button Press Handlers ---
 
 func _on_generate_pressed():
-	# Send RPC to server (GameManager)
-	if not generate_button.disabled:
-		rpc_id(1, "rpc_player_action_generate") # Target host (ID 1)
+	# --- Check Host Readiness First ---
+	if not host_is_ready:
+		print("Controller Warning: Tried to generate power before host was ready.")
+		_show_temporary_status_message("Wait for Host!") # Give feedback
+		return
+
+	if is_instance_valid(generate_button) and not generate_button.disabled:
+		print(">>> Controller: Sending action 'generate' to /root/Display/GameManager")
+		# Target GameManager under the Display node on host (ID 1)
+		rpc_id(1, "/root/Display/GameManager", "rpc_player_action_generate", [])
 
 func _on_action_pressed(action_name: String):
+	# --- Check Host Readiness First ---
+	if not host_is_ready:
+		print("Controller Warning: Tried action '%s' before host was ready." % action_name)
+		_show_temporary_status_message("Wait for Host!") # Give feedback
+		return
+
+	if not cooldown_timers.has(action_name): return
 	var button = cooldown_timers[action_name]["button"]
+	if not is_instance_valid(button): return # Check if button is valid
 	if not button.disabled:
-		# Disable immediately for visual feedback
+		# Disable the button immediately for visual feedback.
 		button.disabled = true
-		# Send RPC to server
-		var rpc_func_name = "rpc_player_action_" + action_name
-		if has_method(rpc_func_name): # Basic check, assumes method exists on target
-			rpc_id(1, rpc_func_name)
-		else:
-			printerr("RPC function not found for action: ", action_name)
-			# Re-enable button if RPC call failed conceptually? Or wait for server confirmation.
-			# Let server handle failure feedback for now.
+		print(">>> Controller: Sending action '%s' to /root/Display/GameManager." % action_name)
+		var target_func = "rpc_player_action_" + action_name
+		# Target GameManager under the Display node on host (ID 1)
+		rpc_id(1, "/root/Display/GameManager", target_func, [])
+
 
 # --- Cooldown Management ---
 
+# Starts or updates the cooldown state for a specific action. Called by RPC from host.
 func _start_cooldown(action: String, end_time_ms: int):
-	if not cooldown_timers.has(action): return
+	if not cooldown_timers.has(action): return # Ignore if action name is invalid
 
 	var state = cooldown_timers[action]
+	# Ensure button exists before proceeding
+	if not is_instance_valid(state.button): return
+
 	state.end_time_ms = end_time_ms
 
-	if end_time_ms > Time.get_ticks_msec():
-		state.button.disabled = true
-		_update_cooldown_display(action) # Initial update
-		# Start the visual update timer (or rely on _process)
-		# state.timer_node.start(0.5) # Example: update display every 0.5s
-	else: # Cooldown is 0 or already passed (e.g., reset)
-		state.end_time_ms = 0
-		state.button.disabled = not is_game_running # Enable if game is running
-		_update_cooldown_display(action) # Clear text
-		# state.timer_node.stop()
+	# Re-evaluate button interactability based on combined flags
+	var allow_interaction = is_game_running and host_has_started_game and host_is_ready
 
+	if end_time_ms > Time.get_ticks_msec():
+		# Cooldown is active. Disable button and update display.
+		state.button.disabled = true # Cooldown overrides allow_interaction
+		_update_cooldown_display(action) # Initial update
+	else:
+		# Cooldown is 0 or already passed (e.g., game reset).
+		state.end_time_ms = 0
+		state.button.disabled = not allow_interaction # Enable only if allowed AND cooldown finished
+		_update_cooldown_display(action) # Clear text
+
+# Updates the text on a button to show remaining cooldown time.
 func _update_cooldown_display(action: String):
 	if not cooldown_timers.has(action): return
 
 	var state = cooldown_timers[action]
 	var button = state.button
 	var end_time_ms = state.end_time_ms
-	var original_text = "" # Get base text from button property or store it
+	var original_text = "" # Store the base text for each button
 
-	# Find the base text if needed (better to store it)
+	# Determine the original button text.
 	match action:
 		"stabilize": original_text = "Stabilize Burst"
 		"emergencyAdjust": original_text = "Emergency Adjust"
 		"stealGrid": original_text = "Divert Power"
+		_: return # Should not happen
 
-	if end_time_ms <= 0: # No active cooldown
-		button.text = original_text
-		button.disabled = not is_game_running # Respect game running state
-		# state.timer_node.stop() # Stop timer if using timed updates
+	# Check if the button instance is valid before proceeding
+	if not is_instance_valid(button):
+		# Clear end_time_ms if button is gone to stop trying to update it
+		if state.end_time_ms > 0: state.end_time_ms = 0
 		return
 
+	# Re-evaluate button interactability based on combined flags
+	var allow_interaction = is_game_running and host_has_started_game and host_is_ready
+
+	# Handle case where cooldown is not active or has just ended.
+	if end_time_ms <= 0:
+		button.text = original_text
+		# Re-check disable state based on game running status AND readiness flags
+		button.disabled = not allow_interaction
+		# Update main status if needed (e.g., "Ready") - No, let _check_and_update_ready_status handle this
+		return
+
+	# Calculate remaining time.
 	var now_ms = Time.get_ticks_msec()
 	var time_left_ms = end_time_ms - now_ms
 
 	if time_left_ms <= 0:
-		# Cooldown finished
+		# Cooldown finished. Reset state and text.
 		state.end_time_ms = 0 # Clear the end time
 		button.text = original_text
-		button.disabled = not is_game_running # Enable if game running
-		# state.timer_node.stop()
-		# Update status text if this was the last active cooldown
-		_check_and_update_ready_status()
-
+		button.disabled = not allow_interaction # Enable only if game running AND ready flags set
+		_check_and_update_ready_status() # Update main status text
 	else:
-		# Cooldown active
+		# Cooldown is active. Display remaining seconds.
 		var seconds_left = ceil(time_left_ms / 1000.0)
-		button.text = "%s (%ds)" % [original_text, seconds_left]
-		button.disabled = true # Ensure it's disabled
+		button.text = "%s (%ds)" % [original_text, int(seconds_left)] # Use int() for whole seconds
+		button.disabled = true # Ensure it's disabled (override allow_interaction)
 
 
 # --- Status Text Management ---
+
+# Shows a temporary message in the status label.
 func _show_temporary_status_message(message: String):
 	status_text.text = message
 	status_message_timer.start() # Will call _clear_temporary_status_message on timeout
 
+# Clears the temporary status message and restores the default status.
 func _clear_temporary_status_message():
 	# Check if game is running or over and update status accordingly
 	_check_and_update_ready_status()
 
-
+# Updates the main status text based on game state, host readiness, and cooldowns.
 func _check_and_update_ready_status():
-	# Only update if no temporary message is scheduled
-	if status_message_timer.is_stopped():
-		if is_game_running:
-			# Check if any cooldown is active
+	if status_message_timer.is_stopped(): # Only update if no temporary message active
+		# Don't override final/error states
+		if status_text.text == "Disconnected" or status_text.text.begins_with("Game Over:") or status_text.text.begins_with("Error:"):
+			return
+
+		if not host_is_ready:
+			status_text.text = "Connected - Waiting for Host..."
+		elif not host_has_started_game:
+			status_text.text = "Host Ready - Waiting for Game Start..."
+		elif is_game_running: # Host is ready AND started AND game is running
+			# Check if any special action is currently on cooldown.
 			var any_cooldown_active = false
 			for action in cooldown_timers:
-				if cooldown_timers[action].end_time_ms > Time.get_ticks_msec():
-					any_cooldown_active = true
-					break # Found one, no need to check more
+				# Ensure button exists before checking cooldown
+				if is_instance_valid(cooldown_timers[action]["button"]):
+					if cooldown_timers[action].end_time_ms > Time.get_ticks_msec():
+						any_cooldown_active = true
+						break # Found one, no need to check more
 			if not any_cooldown_active:
 				status_text.text = "Connected - Ready"
-			# Else: Cooldown display logic should update status text if needed
-		else:
-			status_text.text = "Game Over / Waiting"
+			else:
+				# If a cooldown is active, the button text shows it.
+				status_text.text = "Connected - Action Cooldown Active"
+		else: # Host ready, started, but game not running (game over state before final message)
+			# Check if a specific Game Over message has already been set
+			if not status_text.text.begins_with("Game Over:"):
+				status_text.text = "Game Over / Waiting"
 
 
 # --- RPC Functions Called BY Host ---
+# These functions are executed on the client when the host calls them via RPC.
 
-@rpc("authority", "call_remote")
+# Called when the host sends an update about the overall game state.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_game_state_update(state_data: Dictionary):
-	# Update interactability based on game running state
-	set_buttons_interactable(state_data.gameIsRunning)
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_game_state_update EXECUTED. gameIsRunning = %s !!!!!!" % state_data.get("gameIsRunning", "N/A"))
+	# --- END DEBUG PRINT ---
+	var received_running_state = state_data.get("gameIsRunning", false)
+	# Only update internal state, let set_buttons_interactable handle enabling logic
+	if received_running_state != is_game_running:
+		is_game_running = received_running_state
+		# Re-evaluate button state based on the new running state and existing readiness flags
+		set_buttons_interactable(is_game_running)
 
-	# Update stash target display
 	if state_data.has("stashWinTarget"):
 		stash_target_text.text = str(state_data.stashWinTarget)
 
-	# Update status text if needed (e.g., when game starts/stops)
+	# Update status text based on the possibly changed game state
 	_check_and_update_ready_status()
 
-
-@rpc("authority", "call_remote")
+# Called when the host sends an update about a specific action's cooldown for this client.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_action_cooldown(cooldown_data: Dictionary):
-	# print("Controller received cooldown: ", cooldown_data) # Debug
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_action_cooldown EXECUTED for action %s !!!!!!" % cooldown_data.get("action", "N/A"))
+	# --- END DEBUG PRINT ---
 	if cooldown_data.has("action") and cooldown_data.has("cooldown_end_time_ms"):
 		_start_cooldown(cooldown_data.action, cooldown_data.cooldown_end_time_ms)
 
-@rpc("authority", "call_remote")
+# Called when the host sends an update about this client's personal stash amount.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_personal_stash_update(stash_data: Dictionary):
-	# print("Controller received stash update: ", stash_data) # Debug
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_personal_stash_update EXECUTED. Stash = %s !!!!!!" % stash_data.get("personal_stash", "N/A"))
+	# --- END DEBUG PRINT ---
 	if stash_data.has("personal_stash"):
 		stash_amount_text.text = str(stash_data.personal_stash)
 
-@rpc("authority", "call_remote")
+# Called when the host indicates that an action attempted by this client failed.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_action_failed(fail_data: Dictionary):
-	print("Controller received action failed: ", fail_data)
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_action_failed EXECUTED. Reason = %s !!!!!!" % fail_data.get("reason", "N/A"))
+	# --- END DEBUG PRINT ---
 	var reason = fail_data.get("reason", "Unknown reason")
 	var message = ""
 	if reason == "Used in wrong zone!":
-		message = "Misused!"
+		message = "Misused!" # Short feedback for misuse
 	elif reason == "cooldown":
-		# Cooldown message is implicitly handled by the cooldown display
-		# Don't show a separate "Failed: cooldown" message
-		return
+		# Cooldown message is implicitly handled by the button cooldown display.
+		return # Exit early
+	elif reason == "Insufficient grid energy":
+		message = "Failed: Low Grid Energy"
 	else:
-		message = "Failed: %s" % reason
+		message = "Failed: %s" % reason # Generic failure message
 
 	_show_temporary_status_message(message)
+	# Re-enable the button immediately if failure wasn't due to cooldown itself
+	if reason != "cooldown":
+		var action_name = fail_data.get("action", "")
+		if cooldown_timers.has(action_name):
+			# Check game state and readiness before re-enabling
+			var allow_interaction = is_game_running and host_has_started_game and host_is_ready
+			if is_instance_valid(cooldown_timers[action_name]["button"]):
+				cooldown_timers[action_name]["button"].disabled = not allow_interaction
 
-@rpc("authority", "call_remote")
+
+# Called when the host declares the game is over.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_game_over(outcome_data: Dictionary):
-	print("Controller received Game Over: ", outcome_data)
-	set_buttons_interactable(false)
-	status_text.text = "Game Over: %s" % outcome_data.reason
-	# Clear any active cooldown displays visually
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_game_over EXECUTED. Reason = %s !!!!!!" % outcome_data.get("reason", "N/A"))
+	# --- END DEBUG PRINT ---
+	host_has_started_game = false # Game stopped
+	host_is_ready = false # Assume host needs re-ready signal after reset
+	set_buttons_interactable(false) # Disable buttons explicitly using the new flag logic
+	var reason_text = outcome_data.get("reason", "unknown").capitalize()
+	var winner_id = outcome_data.get("winner_id", 0)
+	if reason_text == "Individualwin": reason_text = "Individual Win" # Fix capitalization
+	if reason_text == "Coopwin": reason_text = "Cooperative Win"
+
+	var final_message = "Game Over: %s" % reason_text
+	if reason_text == "Individual Win":
+		# Check if this client is the winner
+		var own_id = multiplayer.get_unique_id() if multiplayer else 0
+		if winner_id == own_id and own_id != 0:
+			final_message = "Game Over: You Win! (Individual Stash)"
+		else:
+			final_message = "Game Over: Player %d Wins (Individual Stash)" % winner_id
+
+	status_text.text = final_message
+	# Clear any active cooldown displays visually by setting end time to 0.
 	for action in cooldown_timers:
 		_start_cooldown(action, 0) # Reset cooldown state
 
-@rpc("authority", "call_remote")
+# Called when the host resets the game for a new round.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_game_reset():
-	print("Controller received Game Reset.")
-	status_text.text = "Game Resetting..."
-	stash_amount_text.text = "0"
-	stash_target_text.text = "??" # Might get updated by initial state
-	set_buttons_interactable(false) # Wait for game start signal/state
-	# Clear any active cooldown displays visually
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_game_reset EXECUTED !!!!!!" )
+	# --- END DEBUG PRINT ---
+	host_is_ready = false # Reset host ready flag, wait for signal again
+	host_has_started_game = false # Wait for next start signal
+	set_buttons_interactable(false) # Ensure buttons are off
+	status_text.text = "Game Resetting... Waiting for Host..." # Update status
+	stash_amount_text.text = "0" # Reset stash display
+	stash_target_text.text = "??" # Reset target display (will be updated by initial state)
 	for action in cooldown_timers:
-		_start_cooldown(action, 0)
+		_start_cooldown(action, 0) # Reset cooldown visuals
 
-@rpc("authority", "call_remote")
+# Called when the host signals the start of the game.
+@rpc("authority", "call_remote", "reliable")
 func rpc_receive_game_start():
-	print("Controller received Game Start.")
-	is_game_running = true
-	set_buttons_interactable(true) # Enable buttons respecting cooldowns
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_game_start EXECUTED !!!!!!" )
+	# --- END DEBUG PRINT ---
+	host_has_started_game = true # Set game started flag
+	# Now that host confirmed start, enable buttons IF game state is running AND host is ready
+	set_buttons_interactable(is_game_running) # Re-evaluate buttons based on all flags
+	_check_and_update_ready_status() # Update status
+
+# Called when this client first connects, receiving the initial game state from the host.
+@rpc("authority", "call_remote", "reliable")
+func rpc_receive_initial_state(state_data: Dictionary):
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_receive_initial_state EXECUTED. gameIsRunning = %s !!!!!!" % state_data.get("gameIsRunning", "N/A"))
+	# --- END DEBUG PRINT ---
+	# Set internal state but don't enable buttons based on this alone
+	is_game_running = state_data.get("gameIsRunning", false)
+	# Don't call set_buttons_interactable here directly, wait for rpc_signal_host_ready and rpc_receive_game_start
+	if state_data.has("stashWinTarget"):
+		stash_target_text.text = str(state_data.stashWinTarget)
+	# Update status initially based on is_game_running received, but respect readiness flags
 	_check_and_update_ready_status()
 
 
-@rpc("authority", "call_remote")
-func rpc_receive_initial_state(state_data: Dictionary):
-	print("Controller received initial state.")
-	# Apply initial state, similar to gameStateUpdate but maybe more comprehensive
-	is_game_running = state_data.get("gameIsRunning", false)
+# --- NEW RPC: Receive Host Ready Signal ---
+@rpc("authority", "call_remote", "reliable")
+func rpc_signal_host_ready():
+	# --- DEBUG PRINT ---
+	print("!!!!!! CLIENT: rpc_signal_host_ready EXECUTED !!!!!!" )
+	# --- END DEBUG PRINT ---
+	host_is_ready = true # Set the ready flag
+	# Re-evaluate button state now that host is ready, considering game running/started flags
 	set_buttons_interactable(is_game_running)
-	if state_data.has("stashWinTarget"):
-		stash_target_text.text = str(state_data.stashWinTarget)
-	 # Assume cooldowns/stash will be sent separately if needed on connect
+	# Update status text accordingly
+	_check_and_update_ready_status()
 
 # --- Network Handling ---
+
+# Called by signal from NetworkManager when connection succeeds initially.
+func _on_connected_successfully():
+	# Connection is up, but wait for game state/start/ready signals from host
+	if status_text.text == "Connecting...": # Only update if still in initial connecting state
+		status_text.text = "Connected - Waiting for Host..." # More accurate status, wait for ready signal
+		# --- DEBUG PRINT ---
+		print(">>> Controller: _on_connected_successfully updated status.")
+		# --- END DEBUG PRINT ---
+
+# Called by signal from NetworkManager if connection fails or server disconnects.
 func _on_disconnected():
+	host_is_ready = false # Reset host ready flag
+	host_has_started_game = false # Reset flag
 	status_text.text = "Disconnected"
 	set_buttons_interactable(false)
-	# Potentially transition back to Main Menu
-	# get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
-
-# Note: Event and Stabilize updates are not explicitly handled here,
-# as they don't directly affect the controller UI in the original design.
-# If visual feedback is desired (e.g., button glows), add receivers for those RPCs too.
+	print("Controller: Disconnected from server.")

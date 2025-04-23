@@ -1,27 +1,15 @@
-# scripts/PlayerState.gd
-# Option 1: As a Resource (can be saved/loaded easier if needed later)
-# @tool # Add if you want to edit properties in the inspector
-# extends Resource
-# class_name PlayerState
-# @export var id: int = 0
-# @export var stabilize_cooldown_end_ms: int = 0
-# @export var steal_grid_cooldown_end_ms: int = 0
-# @export var personal_stash: float = 0.0
-# @export var emergency_adjust_cooldown_end_ms: int = 0
-
-# Option 2: Simple Class (often sufficient)
 class_name PlayerState
-extends RefCounted # Or just Object if no ref counting needed
+extends RefCounted
 
 var id: int = 0
 var stabilize_cooldown_end_ms: int = 0
 var steal_grid_cooldown_end_ms: int = 0
 var personal_stash: float = 0.0
 var emergency_adjust_cooldown_end_ms: int = 0
+var last_action_status: String = "" # New field for feedback
 
 func _init(p_id: int):
 	id = p_id
-	# Initialize other vars to 0 or default values
 	reset()
 
 func reset():
@@ -29,3 +17,23 @@ func reset():
 	steal_grid_cooldown_end_ms = 0
 	personal_stash = 0.0
 	emergency_adjust_cooldown_end_ms = 0
+	last_action_status = ""
+
+# Helper to easily get state as dictionary
+func get_state_data() -> Dictionary:
+	return {
+		"id": id,
+		"stabilize_cooldown_end_ms": stabilize_cooldown_end_ms,
+		"steal_grid_cooldown_end_ms": steal_grid_cooldown_end_ms,
+		"personal_stash": personal_stash,
+		"emergency_adjust_cooldown_end_ms": emergency_adjust_cooldown_end_ms,
+		"last_action_status": last_action_status
+	}
+
+# Helper to set a temporary status (cleared on next get_state_data call)
+func set_temp_status(status: String):
+	last_action_status = status
+
+# Helper to clear the temporary status after it's been read
+func clear_temp_status():
+	last_action_status = ""

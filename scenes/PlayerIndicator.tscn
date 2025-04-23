@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3 uid="uid://ddb40k4f8ru"]
+
+[ext_resource type="Script" uid="uid://vq1tfikbgjuc" path="res://scripts/PlayerIndicator.gd" id="1_exqhj"]
+
+[node name="PlayerIndicator" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_exqhj")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_right = 153.0
+offset_bottom = 217.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="PlayerIDLabel" type="Label" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+text = "Player X"
+horizontal_alignment = 1
+
+[node name="StashHBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="StashLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
+layout_mode = 2
+text = "Stash:"
+horizontal_alignment = 1
+
+[node name="StashAmountLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
+layout_mode = 2
+text = "0"
+
+[node name="StashSeparatorLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
+layout_mode = 2
+text = "/"
+
+[node name="StashTargetLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
+layout_mode = 2
+text = "??"
+
+[node name="ActionsVBox" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GenerateButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
+layout_mode = 2
+text = "Generate"
+
+[node name="StabilizeButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
+layout_mode = 2
+text = "Stabilize"
+
+[node name="EmergencyButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
+layout_mode = 2
+text = "Emergency"
+
+[node name="StealGridButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
+layout_mode = 2
+text = "Steal"
+
+[node name="StatusLabel" type="Label" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+text = "Status: OK"
+horizontal_alignment = 1

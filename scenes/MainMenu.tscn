@@ -15,23 +15,12 @@ offset_bottom = 338.0
 layout_mode = 2
 text = "Energy Grid"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="StartLocalGameButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-
-[node name="HostIPLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-text = "Host IP:"
-
-[node name="IPAddressInput" type="LineEdit" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-
-[node name="HostGameButton" type="Button" parent="VBoxContainer"]
-layout_mode = 2
-text = "Host Game"
-
-[node name="JoinGameButton" type="Button" parent="VBoxContainer"]
-layout_mode = 2
-text = "Join Game"
+text = "Start Local Game"
 
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="IPDisplayLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2

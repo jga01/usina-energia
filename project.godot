@@ -18,4 +18,9 @@ config/icon="res://icon.svg"
 [autoload]
 
 Config="*res://scripts/config.gd"
-NetworkManager="*res://scripts/network_manager.gd"
+UdpManager="*res://scripts/UdpManager.gd"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

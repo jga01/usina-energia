@@ -46,5 +46,6 @@ const EVENT_EFFICIENCY_GAIN_MULTIPLIER: float = 2.0
 enum EventType { NONE, SURGE, EFFICIENCY }
 const EVENT_TYPES: Array[EventType] = [EventType.SURGE, EventType.EFFICIENCY]
 
-# Network Port (Example)
-const DEFAULT_PORT: int = 3000 # Same as Node example
+# --- Network Settings ---
+const DEFAULT_UDP_PORT: int = 4210 # Example port, choose one not commonly used
+const NUM_PLAYERS: int = 4

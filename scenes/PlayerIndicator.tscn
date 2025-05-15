@@ -1,23 +1,47 @@
-[gd_scene load_steps=2 format=3 uid="uid://ddb40k4f8ru"]
+[gd_scene load_steps=5 format=3 uid="uid://ddb40k4f8ru"]
 
-[ext_resource type="Script" uid="uid://vq1tfikbgjuc" path="res://scripts/PlayerIndicator.gd" id="1_exqhj"]
+[ext_resource type="Script" uid="uid://ccfon5efqghjs" path="res://scripts/PlayerIndicator.gd" id="1_exqhj"]
+[ext_resource type="Texture2D" uid="uid://cwh4u3al8r2yq" path="res://assets/painel.png" id="2_05256"]
+[ext_resource type="FontFile" uid="uid://bn750cur0q168" path="res://assets/Daydream.ttf" id="3_xvnoy"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_xvnoy"]
+texture = ExtResource("2_05256")
+axis_stretch_horizontal = 2
+axis_stretch_vertical = 2
 
 [node name="PlayerIndicator" type="Control"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = 22.0
+offset_right = -919.0
+offset_bottom = -324.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_exqhj")
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_right = 153.0
-offset_bottom = 217.0
+offset_right = 185.0
+offset_bottom = 262.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_xvnoy")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
 layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="CharacterPortrait" type="TextureRect" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+expand_mode = 2
 
 [node name="PlayerIDLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
-text = "Player X"
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 8
+text = "Jogador X"
 horizontal_alignment = 1
 
 [node name="StashHBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
@@ -26,41 +50,63 @@ alignment = 1
 
 [node name="StashLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
 layout_mode = 2
-text = "Stash:"
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
+text = "REDIRECIONADO:"
 horizontal_alignment = 1
 
 [node name="StashAmountLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
 text = "0"
 
 [node name="StashSeparatorLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
 text = "/"
 
 [node name="StashTargetLabel" type="Label" parent="PanelContainer/VBoxContainer/StashHBox"]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
 text = "??"
 
 [node name="ActionsVBox" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
 [node name="GenerateButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
 layout_mode = 2
-text = "Generate"
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
+text = "GERAR"
 
 [node name="StabilizeButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
 layout_mode = 2
-text = "Stabilize"
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
+text = "Estabilizar"
 
 [node name="EmergencyButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
 layout_mode = 2
-text = "Emergency"
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
+text = "EmergENCIA"
 
 [node name="StealGridButton" type="Button" parent="PanelContainer/VBoxContainer/ActionsVBox"]
 layout_mode = 2
-text = "Steal"
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 10
+text = "REDIRECIONAR"
 
 [node name="StatusLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("3_xvnoy")
+theme_override_font_sizes/font_size = 12
 text = "Status: OK"
 horizontal_alignment = 1
+vertical_alignment = 1

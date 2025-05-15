@@ -28,6 +28,7 @@ const STABILIZE_GAIN_MULTIPLIER: float = 0.5
 const STEAL_GRID_COST: float = 5.0
 const STEAL_STASH_GAIN: float = 2.0
 const STEAL_COOLDOWN_MS: float = 10000.0
+const STEAL_ELECTROCUTION_CHANCE_PERCENT: float = 10.0
 const STASH_WIN_TARGET: float = 25.0
 
 # Emergency Adjustment Action

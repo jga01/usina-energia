@@ -1,7 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://dfwfiscg0glrr"]
+[gd_scene load_steps=6 format=3 uid="uid://dfwfiscg0glrr"]
 
 [ext_resource type="Script" uid="uid://caobighhsib0k" path="res://scripts/Display.gd" id="1_dudek"]
 [ext_resource type="Script" uid="uid://c00dmqbwcsdsq" path="res://scripts/GameManager.gd" id="2_e618a"]
+[ext_resource type="FontFile" uid="uid://bn750cur0q168" path="res://assets/Daydream.ttf" id="3_eiwlx"]
+[ext_resource type="Texture2D" uid="uid://dnochw65c3urc" path="res://assets/usina-normal.jpeg" id="4_eiwlx"]
+
+[sub_resource type="Theme" id="Theme_cd04d"]
+Label/colors/font_color = Color(0.454902, 0.952941, 1, 1)
+Label/fonts/font = ExtResource("3_eiwlx")
+ProgressBar/colors/font_color = Color(0.455178, 0.952073, 1, 1)
+ProgressBar/fonts/font = ExtResource("3_eiwlx")
 
 [node name="Display" type="Control"]
 layout_mode = 3
@@ -12,79 +20,68 @@ offset_right = 102.0
 offset_bottom = 55.0
 script = ExtResource("1_dudek")
 
+[node name="Usina-normal" type="Sprite2D" parent="."]
+position = Vector2(512, 266)
+scale = Vector2(1.49371, 1.49371)
+texture = ExtResource("4_eiwlx")
+
 [node name="PlayerIndicatorsParent" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -101.0
-offset_top = -54.0
-offset_right = 651.0
-offset_bottom = 429.0
+offset_left = -102.0
+offset_top = -55.0
+offset_right = 1050.0
+offset_bottom = 593.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 149.0
-offset_top = 111.0
-offset_right = 288.0
-offset_bottom = 246.0
+offset_left = -102.0
+offset_top = -55.0
+offset_right = 1050.0
+offset_bottom = 593.0
+theme = SubResource("Theme_cd04d")
+alignment = 1
 
 [node name="EventAlertLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+horizontal_alignment = 1
 
 [node name="PowerGridStatusLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 text = "Power Grid Status"
-
-[node name="EnergyBarContainer" type="Control" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="EnergyBar" type="ProgressBar" parent="VBoxContainer/EnergyBarContainer"]
-layout_mode = 0
-offset_left = -4.0
-offset_top = 95.0
-offset_right = 149.0
-offset_bottom = 122.0
-value = 50.0
-
-[node name="SafeZoneTop" type="ColorRect" parent="VBoxContainer/EnergyBarContainer"]
-layout_mode = 0
-offset_left = 221.0
-offset_top = 22.0
-offset_right = 261.0
-offset_bottom = 62.0
-
-[node name="SafeZoneBottom" type="ColorRect" parent="VBoxContainer/EnergyBarContainer"]
-layout_mode = 0
-offset_left = 222.0
-offset_top = -27.0
-offset_right = 262.0
-offset_bottom = 13.0
+horizontal_alignment = 1
 
 [node name="EnergyLevelText" type="Label" parent="VBoxContainer"]
+visible = false
 layout_mode = 2
 text = "50%"
+horizontal_alignment = 1
 
 [node name="StatusText" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 text = "Waiting..."
+horizontal_alignment = 1
 
 [node name="CoopProgressText" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 text = "Stability Goal: ..."
+horizontal_alignment = 1
 
-[node name="ResetButtonContainer" type="PanelContainer" parent="."]
-layout_mode = 0
-offset_left = 281.0
-offset_top = 40.0
-offset_right = 382.0
-offset_bottom = 84.0
-
-[node name="ResetButton" type="Button" parent="ResetButtonContainer"]
+[node name="EnergyBarContainer" type="Control" parent="VBoxContainer"]
 layout_mode = 2
-text = "Start Again?"
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="EnergyBar" type="ProgressBar" parent="VBoxContainer/EnergyBarContainer"]
+layout_mode = 0
+offset_left = -75.0
+offset_right = 69.0
+offset_bottom = 26.0
+value = 50.0
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("2_e618a")

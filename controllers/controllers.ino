@@ -3,13 +3,13 @@
 #include <WiFiUdp.h>    // For UDP communication
 
 // --- WiFi Configuration ---
-const char* ssid = "brisa-2206203";         // <<-- REPLACE with your WiFi network name
-const char* password = "ok6gysuy"; // <<-- REPLACE with your WiFi password
+const char* ssid = "Jesus te Ama";         // <<-- REPLACE with your WiFi network name
+const char* password = "joao316!"; // <<-- REPLACE with your WiFi password
 
 // --- Network Configuration ---
 // IP address of the computer running Godot. Find this using 'ipconfig' (Windows) or 'ip addr' (Linux/macOS)
 // It's best to set a static IP for the Godot machine on your router if possible.
-const char* godotIpAddress = "192.168.0.10";
+const char* godotIpAddress = "192.168.224.44";
 const int godotPort = 4210;
 
 // --- UDP Object ---

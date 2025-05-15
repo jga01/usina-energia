@@ -1,0 +1,84 @@
+[gd_scene load_steps=5 format=3 uid="uid://y24p0e15dd3v"]
+
+[ext_resource type="Script" uid="uid://c5itxnti7a2q3" path="res://scripts/CharacterSelection.gd" id="1_8om47"]
+[ext_resource type="FontFile" uid="uid://bn750cur0q168" path="res://assets/Daydream.ttf" id="2_2v1mg"]
+[ext_resource type="Texture2D" uid="uid://c2s0hm0lilrrb" path="res://assets/background.png" id="2_o564h"]
+[ext_resource type="Texture2D" uid="uid://c1760ld4bp2fw" path="res://assets/portraits/char_male_1_normal.jpeg" id="4_5se5x"]
+
+[node name="CharacterSelection" type="CenterContainer"]
+offset_right = 1152.0
+offset_bottom = 648.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1_8om47")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(576, 324.125)
+scale = Vector2(0.599768, 0.599769)
+texture = ExtResource("2_o564h")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="TurnIndicatorLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_2v1mg")
+text = "Player1, escolha o seu personagem"
+horizontal_alignment = 1
+
+[node name="CharacterPortraitPreview" type="TextureRect" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("4_5se5x")
+expand_mode = 1
+
+[node name="HBoxCharacterDisplay" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="PrevCharButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxCharacterDisplay"]
+layout_mode = 2
+text = "<"
+
+[node name="CharacterNameLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxCharacterDisplay"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_2v1mg")
+theme_override_font_sizes/font_size = 10
+text = "Character Name"
+horizontal_alignment = 1
+
+[node name="NextCharButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxCharacterDisplay"]
+layout_mode = 2
+text = ">"
+
+[node name="CharacterDescriptionLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_2v1mg")
+theme_override_font_sizes/font_size = 12
+text = "Character description..."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="SelectedInfoLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_2v1mg")
+text = "P1: None | P2: None | P3: None | P4: None"
+horizontal_alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_2v1mg")
+text = "Confirmar"

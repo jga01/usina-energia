@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 
 Config="*res://scripts/config.gd"
 UdpManager="*res://scripts/UdpManager.gd"
+PlayerProfiles="*res://scripts/PlayerProfiles.gd"
+TextDB="*res://scripts/TextDB.gd"
 
 [rendering]
 

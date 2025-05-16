@@ -19,6 +19,11 @@ func _ready():
 	prev_char_button.pressed.connect(_on_prev_char_button_pressed)
 	next_char_button.pressed.connect(_on_next_char_button_pressed)
 	confirm_button.pressed.connect(_on_confirm_button_pressed)
+	
+	if Audio: # Check if Autoload is available
+		Audio.play_bgm(Audio.BGM_MENU_PATH) # Use the same music as the main menu
+	else:
+		printerr("CharacterSelection: Audio autoload not found!")
 
 	PlayerProfiles.reset_selections()
 	_start_player_turn()
@@ -134,6 +139,10 @@ func _on_confirm_button_pressed():
 	else:
 		print("All players selected. Starting game...")
 		print("Final Selections:", PlayerProfiles.get_all_selections())
+		
+		if Audio:
+			Audio.stop_bgm()
+		
 		get_tree().change_scene_to_file("res://scenes/Display.tscn")
 
 func _update_confirm_button_state():

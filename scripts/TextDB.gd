@@ -38,6 +38,7 @@ const DISPLAY_GRID_MELTDOWN_TEXT: String = "Colapso da Rede"
 const DISPLAY_ALL_ELIMINATED_TEXT: String = "Todos Eliminados"
 const DISPLAY_LAST_PLAYER_STANDING_TEXT: String = "Ultimo Sobrevivente: Jogador %d"
 
+const DISPLAY_INACTIVITY_WARNING: String = "ALERTA DE INATIVIDADE!\nDrenagem de energia acelerada!"
 
 # Player Indicator
 const PI_STASH_LABEL: String = "REDIRECIONADO:"

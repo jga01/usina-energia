@@ -7,7 +7,7 @@ const char* ssid = "Jesus te Ama";         // <<-- REPLACE with your WiFi networ
 const char* password = "joao316!"; // <<-- REPLACE with your WiFi password
 
 // --- Network Configuration ---
-const char* godotIpAddress = "192.168.224.44"; // <<-- REPLACE with Godot PC's IP
+const char* godotIpAddress = "172"; // <<-- REPLACE with Godot PC's IP
 const int godotPort = 4210;
 
 // --- UDP Object ---

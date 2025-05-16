@@ -18,11 +18,19 @@ var final_game_outcome: Dictionary = {"reason": "none", "winner_id": 0}
 
 var active_event: Dictionary = {"type": Config.EventType.NONE, "end_time_ms": 0}
 
+# --- Inactivity Tracking ---
+var time_since_last_player_input_s: float = 0.0
+var inactivity_penalty_active: bool = false
+var current_inactivity_penalty_multiplier: float = 1.0 # Current actual multiplier being applied
+# --- End of Inactivity Tracking ---
+
 @onready var event_check_timer: Timer = $EventCheckTimer
 @onready var event_duration_timer: Timer = $EventDurationTimer
 @onready var udp_manager = get_node("/root/UdpManager") # Autoloaded
 
 const PlayerState = preload("res://scripts/Player.gd")
+
+var sfx_pitch_range = [0.9, 1.1]
 
 func _ready():
 	print("GameManager: _ready() Initializing for Local Play (UDP)")
@@ -43,34 +51,37 @@ func _ready():
 		event_duration_timer.timeout.connect(_on_event_duration_timer_timeout)
 
 	event_check_timer.wait_time = Config.EVENT_CHECK_INTERVAL_MS / 1000.0
-	event_duration_timer.one_shot = true # Event duration timer stops after one shot
+	event_duration_timer.one_shot = true 
 
 	print("GameManager: Creating player states...")
 	for i in range(1, Config.NUM_PLAYERS + 1):
 		_add_player(i)
 
 	print("GameManager: Starting game logic.")
-	call_deferred("start_game") # Use call_deferred to ensure everything is ready
+	call_deferred("start_game") 
 	print("GameManager: _ready() FINISHED")
 
 func _exit_tree():
 	if udp_manager != null and udp_manager.player_action_received.is_connected(_on_player_action_received):
 		udp_manager.player_action_received.disconnect(_on_player_action_received)
+	
+	if Audio and is_instance_valid(Audio):
+		Audio.stop_bgm()
 
 func _add_player(id: int):
 	if not players.has(id):
 		players[id] = PlayerState.new(id)
 	else:
-		players[id].reset() # If player object already exists, reset it
+		players[id].reset() 
 
 func start_game():
 	print("<<<<<< GAMEMANAGER DEBUG: start_game() called >>>>>>")
-	_reset_game_state()
+	_reset_game_state() 
 	game_is_running = true
 	event_check_timer.start()
-	_emit_full_game_state() # Emit initial state for UI
+	_emit_full_game_state() 
 	for player_id in players:
-		_emit_player_state_update(player_id) # Emit initial player states
+		_emit_player_state_update(player_id)
 	print("GameManager: Game running.")
 
 func _reset_game_state():
@@ -82,38 +93,76 @@ func _reset_game_state():
 	final_game_outcome = {"reason": "none", "winner_id": 0}
 	active_event = {"type": Config.EventType.NONE, "end_time_ms": 0}
 	
+	time_since_last_player_input_s = 0.0
+	inactivity_penalty_active = false
+	current_inactivity_penalty_multiplier = 1.0 # Reset penalty multiplier
+	
 	event_check_timer.stop()
 	event_duration_timer.stop()
 	
 	for player_id in players:
-		if players.has(player_id) and players[player_id]: # Check if player state exists
+		if players.has(player_id) and players[player_id] and is_instance_valid(players[player_id]): 
 			players[player_id].reset()
 	
 	emit_signal("game_reset_triggered")
-	_emit_event_state() # Ensure UI reflects no active event after reset
+	_emit_event_state() 
+
+	if Audio and is_instance_valid(Audio):
+		Audio.play_bgm(Audio.BGM_GAMEPLAY_PATH)
+	else:
+		printerr("GameManager: Audio autoload not found or invalid, cannot play gameplay BGM on reset/start!")
+
 
 func _process(delta: float):
 	if not game_is_running:
 		return
 
+	# --- Inactivity Logic ---
+	time_since_last_player_input_s += delta
+	
+	if time_since_last_player_input_s >= Config.INACTIVITY_THRESHOLD_SECONDS:
+		if not inactivity_penalty_active:
+			print("GameManager: Inactivity penalty ACTIVATED!")
+			inactivity_penalty_active = true
+			current_inactivity_penalty_multiplier = Config.INACTIVITY_EXP_BASE_MULTIPLIER # Start with base multiplier
+		else:
+			# Increase the multiplier exponentially, but apply it per second effectively
+			# This simplistic approach will increase it every frame the penalty is active.
+			# For a smoother per-second increase, you might tie this to a separate timer or counter.
+			# Let's adjust it so it effectively compounds based on time beyond threshold.
+			var time_into_penalty = time_since_last_player_input_s - Config.INACTIVITY_THRESHOLD_SECONDS
+			# The exponent grows with time_into_penalty.
+			# Example: after 1s into penalty, multiplier is base. After 2s, base^2, etc.
+			# This is a simple way to get an exponential increase.
+			# We recalculate it each frame it's active.
+			current_inactivity_penalty_multiplier = pow(Config.INACTIVITY_EXP_BASE_MULTIPLIER, 1.0 + time_into_penalty)
+			current_inactivity_penalty_multiplier = min(current_inactivity_penalty_multiplier, Config.INACTIVITY_MAX_PENALTY_MULTIPLIER)
+
+	else: # Inactivity threshold not met
+		if inactivity_penalty_active:
+			print("GameManager: Inactivity penalty DEACTIVATED.")
+			inactivity_penalty_active = false
+		current_inactivity_penalty_multiplier = 1.0 # Reset multiplier
+	# --- End of Inactivity Logic ---
+
 	var now_ms = Time.get_ticks_msec()
 	var current_decay_rate = Config.BASE_ENERGY_DECAY_RATE
 
-	# Apply event effects on decay
 	if active_event.type == Config.EventType.SURGE and now_ms < active_event.end_time_ms:
 		current_decay_rate *= Config.EVENT_SURGE_DECAY_MULTIPLIER
 	
+	# Apply Inactivity Penalty
+	current_decay_rate *= current_inactivity_penalty_multiplier
+	
 	energy_level = clampf(energy_level - (current_decay_rate * delta), Config.MIN_ENERGY, Config.MAX_ENERGY)
 
-	# Check if the active event has ended
 	if active_event.type != Config.EventType.NONE and now_ms >= active_event.end_time_ms:
 		print("--- EVENT (process check) ENDED: ", Config.EventType.keys()[active_event.type], " ---")
 		active_event = {"type": Config.EventType.NONE, "end_time_ms": 0}
-		_emit_event_state() # Update UI that event is over
-		if not event_duration_timer.is_stopped(): # Should be stopped by its own timeout too
+		_emit_event_state() 
+		if not event_duration_timer.is_stopped(): 
 			event_duration_timer.stop()
 
-	# Win/Loss condition checks (largely unchanged)
 	var in_safe_zone = energy_level >= Config.SAFE_ZONE_MIN and energy_level <= Config.SAFE_ZONE_MAX
 	var in_danger_low = energy_level < Config.DANGER_LOW_THRESHOLD
 	var in_danger_high = energy_level > Config.DANGER_HIGH_THRESHOLD
@@ -128,7 +177,7 @@ func _process(delta: float):
 	elif in_danger_high:
 		continuous_time_in_danger_high_s += delta
 		continuous_time_in_danger_low_s = 0.0
-	else: # Not in safe or danger zones (e.g. between danger_low and safe_min)
+	else: 
 		continuous_time_in_danger_low_s = 0.0
 		continuous_time_in_danger_high_s = 0.0
 
@@ -143,18 +192,20 @@ func _process(delta: float):
 	
 	if game_over_reason != "none":
 		_trigger_game_over(game_over_reason, winner_id)
-		return # Stop further processing if game over
+		return 
 
-	_emit_game_state_update() # Periodically update the main game state for UI
+	_emit_game_state_update() 
 
 func _emit_game_state_update():
-	emit_signal("game_state_updated", _get_current_state_snapshot())
+	var state_snapshot = _get_current_state_snapshot()
+	emit_signal("game_state_updated", state_snapshot)
+
 
 func _emit_player_state_update(player_id: int):
 	if players.has(player_id) and is_instance_valid(players[player_id]):
 		var player_state: PlayerState = players[player_id]
 		emit_signal("player_state_updated", player_id, player_state.get_state_data())
-		player_state.clear_temp_status() # Clear status after emitting
+		player_state.clear_temp_status() 
 	else:
 		printerr("GameManager Error: Tried to emit update for invalid player ID or state: %d" % player_id)
 
@@ -167,7 +218,7 @@ func _emit_full_game_state():
 
 func _get_current_state_snapshot() -> Dictionary:
 	var all_player_ids = players.keys()
-	all_player_ids.sort() # Consistent order
+	all_player_ids.sort() 
 	return {
 		"energyLevel": energy_level,
 		"playerIds": all_player_ids,
@@ -186,8 +237,18 @@ func _get_current_state_snapshot() -> Dictionary:
 		"dangerLowProgressSeconds": continuous_time_in_danger_low_s,
 		"dangerHighProgressSeconds": continuous_time_in_danger_high_s,
 		"dangerTimeLimitSeconds": Config.DANGER_TIME_LIMIT_SECONDS,
-		"activeEventType": active_event.type
+		"activeEventType": active_event.type,
+		"player_data_map": _get_all_player_data_map(),
+		"inactivityPenaltyActive": inactivity_penalty_active, # For UI
+		"currentInactivityPenaltyMultiplier": current_inactivity_penalty_multiplier # For UI/debug
 	}
+
+func _get_all_player_data_map() -> Dictionary:
+	var data_map = {}
+	for pid in players:
+		if players.has(pid) and is_instance_valid(players[pid]):
+			data_map[pid] = players[pid].get_state_data()
+	return data_map
 
 func _get_all_player_stashes() -> Dictionary:
 	var stashes = {}
@@ -198,7 +259,7 @@ func _get_all_player_stashes() -> Dictionary:
 
 func _on_event_check_timer_timeout():
 	if not game_is_running or active_event.type != Config.EventType.NONE:
-		return # Don't start a new event if one is already active or game not running
+		return 
 
 	if randf() * 100.0 <= Config.EVENT_CHANCE_PERCENT:
 		var chosen_type = Config.EVENT_TYPES[randi() % Config.EVENT_TYPES.size()]
@@ -209,23 +270,26 @@ func _on_event_check_timer_timeout():
 		event_duration_timer.start()
 		
 		print("--- EVENT TRIGGERED: ", Config.EventType.keys()[chosen_type], " ---")
-		_emit_event_state() # Inform UI about the new event
-	# else: No event triggered this time
-
+		_emit_event_state() 
+	
 func _on_event_duration_timer_timeout():
-	# This callback signifies the natural end of an event's duration
 	if active_event.type != Config.EventType.NONE:
 		print("--- EVENT (duration timer) ENDED: ", Config.EventType.keys()[active_event.type], " ---")
 		active_event = {"type": Config.EventType.NONE, "end_time_ms": 0}
-		_emit_event_state() # Update UI that event is over
+		_emit_event_state() 
 
 func _trigger_game_over(reason: String, winner: int = 0):
-	if not game_is_running: # Prevent multiple game over triggers
+	if not game_is_running: 
 		return
 		
 	print("!!! GAME OVER: Reason=%s, Winner=%d !!!" % [reason, winner])
 	game_is_running = false
 	
+	if Audio and is_instance_valid(Audio):
+		Audio.stop_bgm()
+	else:
+		printerr("GameManager: Audio autoload not found or invalid, cannot stop BGM on game over!")
+
 	var player_scores_for_leaderboard: Array[Dictionary] = []
 	var sorted_player_ids = players.keys()
 	sorted_player_ids.sort()
@@ -234,7 +298,7 @@ func _trigger_game_over(reason: String, winner: int = 0):
 		if players.has(pid) and is_instance_valid(players[pid]):
 			var p_state: PlayerState = players[pid]
 			var char_details: Dictionary = {}
-			if PlayerProfiles:
+			if PlayerProfiles and is_instance_valid(PlayerProfiles):
 				char_details = PlayerProfiles.get_selected_character_details(pid)
 			
 			player_scores_for_leaderboard.append({
@@ -254,15 +318,14 @@ func _trigger_game_over(reason: String, winner: int = 0):
 	event_check_timer.stop()
 	event_duration_timer.stop()
 	
-	# Ensure any active event is cleared on game over
 	if active_event.type != Config.EventType.NONE:
 		active_event = {"type": Config.EventType.NONE, "end_time_ms": 0}
-		_emit_event_state() # Update UI
+		_emit_event_state() 
 		
 	emit_signal("game_over_triggered", final_game_outcome)
-	_emit_game_state_update() # Send final game state
+	_emit_game_state_update() 
 
-func _on_player_action_received(player_id: int, action_string: String): # action_string is "mash"
+func _on_player_action_received(player_id: int, action_string: String): 
 	if player_id <= 0 or player_id > Config.NUM_PLAYERS:
 		printerr("GM: Invalid player ID %d for action." % player_id)
 		return
@@ -272,27 +335,32 @@ func _on_player_action_received(player_id: int, action_string: String): # action
 
 	var player_state: PlayerState = players[player_id]
 	if player_state.is_eliminated:
-		return # Eliminated players cannot act
+		return 
 
-	# Visual feedback for the button press
-	emit_signal("player_action_visual_feedback", player_id, "mash") # Use "mash" or a generic term
+	time_since_last_player_input_s = 0.0 # Reset inactivity timer
+
+	if Audio and is_instance_valid(Audio): 
+		var random_pitch = randf_range(sfx_pitch_range[0], sfx_pitch_range[1])
+		Audio.play_sfx(Audio.SFX_PLAYER_MASH_PATH, 0.0, random_pitch) 
+	else:
+		printerr("GameManager: Audio autoload not found or invalid, cannot play SFX!")
+
+	emit_signal("player_action_visual_feedback", player_id, "mash") 
 
 	if not game_is_running:
-		return # No actions if game isn't running
+		return 
 
 	var now_ms = Time.get_ticks_msec()
 	var current_event_type = active_event.type
 	var event_is_active = (active_event.end_time_ms > now_ms)
 
-	# If event_is_active is false, but current_event_type is not NONE, it means event just ended.
-	# Treat as NONE state for player action.
 	if not event_is_active and current_event_type != Config.EventType.NONE:
 		current_event_type = Config.EventType.NONE
 
 	var energy_gained_by_this_mash: float = 0.0
 
 	match current_event_type:
-		Config.EventType.NONE: # Normal Operation
+		Config.EventType.NONE: 
 			energy_gained_by_this_mash = Config.BASE_ENERGY_GAIN_PER_MASH
 			energy_level = clampf(energy_level + Config.BASE_ENERGY_GAIN_PER_MASH, Config.MIN_ENERGY, Config.MAX_ENERGY)
 		
@@ -305,8 +373,6 @@ func _on_player_action_received(player_id: int, action_string: String): # action
 			energy_level = clampf(energy_level + energy_gained_by_this_mash, Config.MIN_ENERGY, Config.MAX_ENERGY)
 		
 		Config.EventType.UNSTABLE_GRID:
-			# This event does NOT generate grid energy, it drains it.
-			# So, energy_gained_by_this_mash remains 0.0 for this case.
 			if randf() * 100.0 < Config.UNSTABLE_GRID_ELECTROCUTION_CHANCE_PERCENT:
 				player_state.eliminate_player()
 				_emit_player_state_update(player_id)
@@ -331,26 +397,24 @@ func _on_player_action_received(player_id: int, action_string: String): # action
 	if energy_gained_by_this_mash > 0:
 		player_state.add_generated_energy(energy_gained_by_this_mash)
 	
-	# No need to call _emit_player_state_update here unless a status was set.
-	# Energy level changes are reflected by _emit_game_state_update in _process.
-
 func _check_elimination_game_over_conditions():
-	if not game_is_running: return # Don't check if game already over
+	if not game_is_running: return 
 	
 	var active_players_count = 0
 	var last_active_player_id = 0
 	for pid in players:
-		var p_state: PlayerState = players[pid]
-		if not p_state.is_eliminated:
-			active_players_count += 1
-			last_active_player_id = pid
+		if players.has(pid) and is_instance_valid(players[pid]): 
+			var p_state: PlayerState = players[pid]
+			if not p_state.is_eliminated:
+				active_players_count += 1
+				last_active_player_id = pid
 			
 	if active_players_count == 0 and Config.NUM_PLAYERS > 0:
 		_trigger_game_over("allEliminated")
-	elif active_players_count == 1 and Config.NUM_PLAYERS > 1: # Only matters if more than 1 player started
+	elif active_players_count == 1 and Config.NUM_PLAYERS > 1: 
 		_trigger_game_over("lastPlayerStanding", last_active_player_id)
 
-func handle_reset_request(): # Example if UI had a reset button directly
+func handle_reset_request(): 
 	if not game_is_running:
 		print("GM: Reset approved (game not running). Starting new game.")
 		start_game()

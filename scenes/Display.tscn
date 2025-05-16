@@ -82,7 +82,7 @@ value = 50.0
 fill_mode = 3
 show_percentage = false
 
-[node name="Node2D" type="Node2D" parent="CenterContainer/CentralCoreSprite"]
+[node name="EventParticlesContainer" type="Node2D" parent="CenterContainer/CentralCoreSprite"]
 
 [node name="TopInfoContainer" type="HBoxContainer" parent="."]
 layout_mode = 1

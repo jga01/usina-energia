@@ -21,6 +21,7 @@ Config="*res://scripts/config.gd"
 UdpManager="*res://scripts/UdpManager.gd"
 PlayerProfiles="*res://scripts/PlayerProfiles.gd"
 TextDB="*res://scripts/TextDB.gd"
+Audio="*res://scripts/Audio.gd"
 
 [rendering]
 

@@ -8,9 +8,9 @@ _data = [Vector2(0, 0.640449), 0.0, 0.0, 0, 0, Vector2(0.221591, -0.0337079), -5
 point_count = 3
 
 [node name="EfficiencyParticles" type="CPUParticles2D"]
-emitting = false
 amount = 30
 texture = ExtResource("1_ut5bm")
+spread = 180.0
 gravity = Vector2(0, -20)
 initial_velocity_min = 30.0
 initial_velocity_max = 600.0

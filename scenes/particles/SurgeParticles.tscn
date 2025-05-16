@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3 uid="uid://c7y0l13a0omj5"]
+
+[ext_resource type="Texture2D" uid="uid://bnr8cvjdmdnmq" path="res://assets/new/particle.png" id="1_r75ye"]
+
+[sub_resource type="Gradient" id="Gradient_ppn53"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0.506667, 0.506667, 0.506667, 1, 1, 1, 1, 1)
+metadata/_snap_enabled = true
+
+[sub_resource type="Curve" id="Curve_r75ye"]
+_limits = [-1.0, 1.0, 0.0, 1.0]
+_data = [Vector2(0.0681818, -1), 0.0, 0.0, 0, 0, Vector2(1, -1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="SurgeParticles" type="CPUParticles2D"]
+emitting = false
+amount = 50
+texture = ExtResource("1_r75ye")
+spread = 180.0
+gravity = Vector2(0, 98)
+initial_velocity_min = 50.0
+initial_velocity_max = 100.0
+color = Color(0.782611, 0.520146, 3.85046e-07, 1)
+color_ramp = SubResource("Gradient_ppn53")
+hue_variation_min = 1.0
+hue_variation_max = 1.0
+hue_variation_curve = SubResource("Curve_r75ye")

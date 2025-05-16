@@ -1,52 +1,44 @@
+# scripts/Player.gd
 class_name PlayerState
 extends RefCounted
 
 var id: int = 0
-var stabilize_cooldown_end_ms: int = 0
-var steal_grid_cooldown_end_ms: int = 0
 var personal_stash: float = 0.0
-var emergency_adjust_cooldown_end_ms: int = 0
-var last_action_status: String = ""
+var total_energy_generated: float = 0.0 # <-- NEW VARIABLE
 var is_eliminated: bool = false
+var last_action_status: String = ""
 
 func _init(p_id: int):
 	id = p_id
 	reset()
 
 func reset():
-	stabilize_cooldown_end_ms = 0
-	steal_grid_cooldown_end_ms = 0
 	personal_stash = 0.0
-	emergency_adjust_cooldown_end_ms = 0
-	last_action_status = ""
+	total_energy_generated = 0.0 # <-- RESET
 	is_eliminated = false
+	last_action_status = ""
 
-# Helper to easily get state as dictionary
 func get_state_data() -> Dictionary:
 	return {
 		"id": id,
-		"stabilize_cooldown_end_ms": stabilize_cooldown_end_ms,
-		"steal_grid_cooldown_end_ms": steal_grid_cooldown_end_ms,
 		"personal_stash": personal_stash,
-		"emergency_adjust_cooldown_end_ms": emergency_adjust_cooldown_end_ms,
-		"last_action_status": last_action_status,
-		"is_eliminated": is_eliminated
+		"total_energy_generated": total_energy_generated, # <-- INCLUDE IN STATE
+		"is_eliminated": is_eliminated,
+		"last_action_status": last_action_status
 	}
 
-# Helper to set a temporary status (cleared on next get_state_data call)
+func add_generated_energy(amount: float): # <-- NEW HELPER FUNCTION
+	if not is_eliminated and amount > 0:
+		total_energy_generated += amount
+
 func set_temp_status(status: String):
 	last_action_status = status
 
-# Helper to clear the temporary status after it's been read
 func clear_temp_status():
 	last_action_status = ""
 
 func eliminate_player():
 	is_eliminated = true
-	personal_stash = 0.0 # Optional: Player loses all their stash upon elimination
-	# Mark all cooldowns as effectively infinite or very long so they can't act
-	var very_long_time_ms = Time.get_ticks_msec() + (3600 * 1000) # 1 hour
-	stabilize_cooldown_end_ms = very_long_time_ms
-	steal_grid_cooldown_end_ms = very_long_time_ms
-	emergency_adjust_cooldown_end_ms = very_long_time_ms
-	print("Player %d has been eliminated (electrocuted)!" % id)
+	# personal_stash = 0.0 # Optional
+	print("Player %d has been eliminated!" % id)
+	set_temp_status(TextDB.STATUS_ELECTROCUTED)

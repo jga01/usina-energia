@@ -1,87 +1,193 @@
-[gd_scene load_steps=6 format=3 uid="uid://dfwfiscg0glrr"]
+[gd_scene load_steps=11 format=3 uid="uid://dfwfiscg0glrr"]
 
 [ext_resource type="Script" uid="uid://caobighhsib0k" path="res://scripts/Display.gd" id="1_dudek"]
+[ext_resource type="Shader" uid="uid://u6aedfwbe4le" path="res://scenes/SlidingBackground.gdshader" id="2_83slp"]
 [ext_resource type="Script" uid="uid://c00dmqbwcsdsq" path="res://scripts/GameManager.gd" id="2_e618a"]
+[ext_resource type="Texture2D" uid="uid://ocwrk7lwpnf0" path="res://assets/new/wallpaper2.jpeg" id="3_83slp"]
 [ext_resource type="FontFile" uid="uid://bn750cur0q168" path="res://assets/Daydream.ttf" id="3_eiwlx"]
-[ext_resource type="Texture2D" uid="uid://dnochw65c3urc" path="res://assets/usina-normal.jpeg" id="4_eiwlx"]
+[ext_resource type="Texture2D" uid="uid://nu1impq8fob5" path="res://assets/new/battery_normal.png" id="4_83slp"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_djk3t"]
+shader = ExtResource("2_83slp")
+shader_parameter/scroll_speed = Vector2(0.05, 0.05)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ProgressBarBG"]
+bg_color = Color(0.2, 0.2, 0.2, 0.6)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ProgressBarFill"]
+bg_color = Color(0.3, 0.7, 0.3, 0.8)
 
 [sub_resource type="Theme" id="Theme_cd04d"]
-Label/colors/font_color = Color(0.454902, 0.952941, 1, 1)
+Label/colors/font_color = Color(0.95, 0.95, 0.95, 1)
 Label/fonts/font = ExtResource("3_eiwlx")
-ProgressBar/colors/font_color = Color(0.455178, 0.952073, 1, 1)
-ProgressBar/fonts/font = ExtResource("3_eiwlx")
+PanelContainer/styles/panel = null
 
 [node name="Display" type="Control"]
 layout_mode = 3
-anchors_preset = 0
-offset_left = 102.0
-offset_top = 55.0
-offset_right = 102.0
-offset_bottom = 55.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_dudek")
 
-[node name="Usina-normal" type="Sprite2D" parent="."]
-position = Vector2(512, 266)
-scale = Vector2(1.49371, 1.49371)
-texture = ExtResource("4_eiwlx")
+[node name="StaticBackground" type="TextureRect" parent="."]
+material = SubResource("ShaderMaterial_djk3t")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 384.0
+offset_bottom = 216.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("3_83slp")
+expand_mode = 2
+stretch_mode = 1
 
 [node name="PlayerIndicatorsParent" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -102.0
-offset_top = -55.0
-offset_right = 1050.0
-offset_bottom = 593.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 0
-offset_left = -102.0
-offset_top = -55.0
-offset_right = 1050.0
-offset_bottom = 593.0
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CentralCoreSprite" type="Sprite2D" parent="CenterContainer"]
+position = Vector2(576, 324)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("4_83slp")
+
+[node name="AnimationPlayerCore" type="AnimationPlayer" parent="CenterContainer/CentralCoreSprite"]
+
+[node name="EnergyProgressBar" type="ProgressBar" parent="CenterContainer/CentralCoreSprite"]
+unique_name_in_owner = true
+offset_left = -248.0
+offset_top = -132.0
+offset_right = -162.0
+offset_bottom = 144.0
+theme_override_styles/background = SubResource("StyleBoxFlat_ProgressBarBG")
+theme_override_styles/fill = SubResource("StyleBoxFlat_ProgressBarFill")
+step = 0.1
+value = 50.0
+fill_mode = 3
+show_percentage = false
+
+[node name="Node2D" type="Node2D" parent="CenterContainer/CentralCoreSprite"]
+
+[node name="TopInfoContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 60.0
+grow_horizontal = 2
 theme = SubResource("Theme_cd04d")
 alignment = 1
 
-[node name="EventAlertLabel" type="Label" parent="VBoxContainer"]
+[node name="StabilityGoalContainer" type="HBoxContainer" parent="TopInfoContainer"]
 layout_mode = 2
-horizontal_alignment = 1
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+alignment = 1
 
-[node name="PowerGridStatusLabel" type="Label" parent="VBoxContainer"]
+[node name="StabilityIcon" type="TextureRect" parent="TopInfoContainer/StabilityGoalContainer"]
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
-text = "Power Grid Status"
-horizontal_alignment = 1
+expand_mode = 1
+stretch_mode = 5
 
-[node name="EnergyLevelText" type="Label" parent="VBoxContainer"]
+[node name="StabilityGoalText" type="Label" parent="TopInfoContainer/StabilityGoalContainer"]
+layout_mode = 2
+text = "Stability: --s / --s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GameStatusText" type="Label" parent="."]
 visible = false
-layout_mode = 2
-text = "50%"
-horizontal_alignment = 1
-
-[node name="StatusText" type="Label" parent="VBoxContainer"]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = 50.0
+offset_right = 150.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_cd04d")
 text = "Waiting..."
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="CoopProgressText" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-text = "Stability Goal: ..."
+[node name="DangerWarningLabel" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+theme = SubResource("Theme_cd04d")
+theme_override_colors/font_color = Color(1, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "DANGER IMMINENT!"
 horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
 
-[node name="EnergyBarContainer" type="Control" parent="VBoxContainer"]
+[node name="EventNotificationOverlay" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -100.0
+offset_right = 300.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_cd04d")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EventNotificationOverlay"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
+alignment = 1
 
-[node name="EnergyBar" type="ProgressBar" parent="VBoxContainer/EnergyBarContainer"]
-layout_mode = 0
-offset_left = -75.0
-offset_right = 69.0
-offset_bottom = 26.0
-value = 50.0
+[node name="EventTitleLabel" type="Label" parent="EventNotificationOverlay/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "EVENT TITLE!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EventDescriptionLabel" type="Label" parent="EventNotificationOverlay/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Event description or effect..."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ElectricityFlowParent" type="Node2D" parent="."]
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("2_e618a")

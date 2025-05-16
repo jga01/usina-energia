@@ -1,14 +1,13 @@
 # File: res://scripts/CharacterSelection.gd
 extends Control
 
-@onready var turn_indicator_label: Label = $MarginContainer/VBoxContainer/TurnIndicatorLabel
-@onready var prev_char_button: Button = $MarginContainer/VBoxContainer/HBoxCharacterDisplay/PrevCharButton
-@onready var character_name_label: Label = $MarginContainer/VBoxContainer/HBoxCharacterDisplay/CharacterNameLabel
-@onready var next_char_button: Button = $MarginContainer/VBoxContainer/HBoxCharacterDisplay/NextCharButton
-@onready var character_description_label: Label = $MarginContainer/VBoxContainer/CharacterDescriptionLabel
-@onready var selected_info_label: Label = $MarginContainer/VBoxContainer/SelectedInfoLabel
-@onready var confirm_button: Button = $MarginContainer/VBoxContainer/ConfirmButton
-@onready var character_portrait_preview: TextureRect = $MarginContainer/VBoxContainer/CharacterPortraitPreview # Ensure this node exists in your .tscn
+@onready var turn_indicator_label: Label = $VBoxContainer/PanelContainer/TurnIndicatorLabel
+@onready var prev_char_button: Button = $VBoxContainer/PanelContainer2/VBoxContainer/HBoxCharacterDisplay/PrevCharButton
+@onready var character_name_label: Label = $VBoxContainer/PanelContainer2/VBoxContainer/HBoxCharacterDisplay/CharacterNameLabel
+@onready var next_char_button: Button = $VBoxContainer/PanelContainer2/VBoxContainer/HBoxCharacterDisplay/NextCharButton
+@onready var character_description_label: Label = $VBoxContainer/PanelContainer2/VBoxContainer/CharacterDescriptionLabel
+@onready var confirm_button: Button = $VBoxContainer/PanelContainer3/ConfirmButton
+@onready var character_portrait_preview: TextureRect = $VBoxContainer/PanelContainer2/VBoxContainer/CharacterPortraitPreview # Ensure this node exists in your .tscn
 
 var current_player_id_turn: int = 1
 var num_players_total: int = Config.NUM_PLAYERS
@@ -59,7 +58,6 @@ func _start_player_turn():
 
 	_update_displayed_character()
 	_update_confirm_button_state()
-	_update_selected_info_label()
 
 
 func _update_displayed_character():
@@ -148,30 +146,3 @@ func _update_confirm_button_state():
 	else:
 		confirm_button.text = TextDB.CS_CONFIRM_NEXT_PLAYER_BUTTON
 		confirm_button.disabled = available_characters_for_selection.is_empty()
-
-func _update_selected_info_label():
-	var info_text = ""
-	for i in range(1, num_players_total + 1):
-		var char_key = PlayerProfiles.get_selected_character_key(i)
-		var char_name_display = TextDB.CS_PLAYER_LABEL_CHOOSING
-
-		if i < current_player_id_turn:
-			if not char_key.is_empty():
-				var details = PlayerProfiles.get_character_details_by_key(char_key)
-				if details:
-					var name_to_display = details.get("name", "N/A")
-					char_name_display = name_to_display.substr(0, 7) + "..." if name_to_display.length() > 10 else name_to_display
-			else:
-				char_name_display = TextDB.CS_PLAYER_LABEL_SKIPPED
-		elif i == current_player_id_turn:
-			char_name_display = TextDB.CS_PLAYER_LABEL_YOUR_TURN
-
-		info_text += TextDB.CS_SELECTED_INFO_PLAYER_STATUS % [i, char_name_display]
-		if i < num_players_total: # Ensure the last entry doesn't have an extra separator
-			# No change needed here, the original logic was fine
-			pass
-	# Remove trailing " | " if present
-	if info_text.ends_with(" | "):
-		info_text = info_text.substr(0, info_text.length() - 3)
-		
-	selected_info_label.text = info_text

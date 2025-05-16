@@ -5,8 +5,8 @@ extends Node
 # You MUST replace these placeholder paths with your actual asset paths.
 const AVAILABLE_CHARACTERS: Array[Dictionary] = [
 	{
-		"key": "char_male_1", "name": "Commander Rex", "gender": "male",
-		"description": "A stoic leader with a tactical mind.",
+		"key": "char_male_1", "name": "Comandante Rex", "gender": "male",
+		"description": "Um lider estoico com uma mente tatica.",
 		"portraits": {
 			"normal": "res://assets/portraits/char_male_1_normal.jpeg",
 			"warning": "res://assets/portraits/char_male_1_warning.jpeg",
@@ -15,8 +15,8 @@ const AVAILABLE_CHARACTERS: Array[Dictionary] = [
 		}
 	},
 	{
-		"key": "char_male_2", "name": "Technician Spike", "gender": "male",
-		"description": "Gadget expert, always tinkering with something.",
+		"key": "char_male_2", "name": "Tecnico Spike", "gender": "male",
+		"description": "Expert de gadgets, sempre projetando algo.",
 		"portraits": {
 			"normal": "res://assets/portraits/char_male_2_normal.jpeg",
 			"warning": "res://assets/portraits/char_male_2_warning.jpeg",
@@ -25,8 +25,8 @@ const AVAILABLE_CHARACTERS: Array[Dictionary] = [
 		}
 	},
 	{
-		"key": "char_female_1", "name": "Engineer Ada", "gender": "female",
-		"description": "Brilliant inventor, master of complex systems.",
+		"key": "char_female_1", "name": "Engenheira Ada", "gender": "female",
+		"description": "Inventora brilhante, mestre de sistemas complexos.",
 		"portraits": {
 			"normal": "res://assets/portraits/char_female_1_normal.jpeg",
 			"warning": "res://assets/portraits/char_female_1_warning.jpeg",
@@ -35,8 +35,8 @@ const AVAILABLE_CHARACTERS: Array[Dictionary] = [
 		}
 	},
 	{
-		"key": "char_female_2", "name": "Scout Nova", "gender": "female",
-		"description": "Swift and perceptive, notices every detail.",
+		"key": "char_female_2", "name": "Operadora Nova", "gender": "female",
+		"description": "Agil e perspicaz, percebe cada detalhe.",
 		"portraits": {
 			"normal": "res://assets/portraits/char_female_2_normal.jpeg",
 			"warning": "res://assets/portraits/char_female_2_warning.jpeg",

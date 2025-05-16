@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://x2jasak8iqm5"]
+
+[ext_resource type="Texture2D" uid="uid://bnr8cvjdmdnmq" path="res://assets/new/particle.png" id="1_ut5bm"]
+
+[sub_resource type="Curve" id="Curve_ut5bm"]
+_limits = [-1.0, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 0.640449), 0.0, 0.0, 0, 0, Vector2(0.221591, -0.0337079), -5.15877, -5.15877, 0, 0, Vector2(0.323864, -1), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[node name="EfficiencyParticles" type="CPUParticles2D"]
+emitting = false
+amount = 30
+texture = ExtResource("1_ut5bm")
+gravity = Vector2(0, -20)
+initial_velocity_min = 30.0
+initial_velocity_max = 600.0
+color = Color(0, 0.809273, 0.843219, 1)
+hue_variation_min = 0.04
+hue_variation_max = 0.16
+hue_variation_curve = SubResource("Curve_ut5bm")
